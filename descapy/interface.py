@@ -26,7 +26,7 @@ class InterfaceDE:
         self.networks = dict()
         self.networks_list = list()
     
-    def scan(self
+    def scan_for_ap(self
         , scan_time: int = 10
         , channels: list = [1,6,11]):
         '''
@@ -56,6 +56,7 @@ class InterfaceDE:
                         elt = elt.payload if hasattr(elt, 'payload') else None
 
                         # Get signal strength from RadioTap header
+
                         signal_strength = None
                         if pkt.haslayer(RadioTap):
                             # Try different RadioTap signal strength fields
@@ -99,3 +100,26 @@ class InterfaceDE:
             sniff(iface=self.interface, prn=packet_handler, timeout=scan_time/len(channels))
 
         return self.networks
+
+    def scan_for_pkts(self
+        , scan_time: int = 10
+        , channels: list = [1,6,11]):
+        '''
+        Running the scan will clear all prior scans in the class
+        '''
+        self.networks_list = []
+    
+        def packet_handler(pkt):
+            self.networks_list.append(pkt)
+
+        for channel in self.channels:
+            logger.info(f"Scanning channel(s) {channel} for {scan_time} seconds, {scan_time/len(channels)} per channel.")
+
+            # Change to specific channel
+            subprocess.run(['sudo', 'iwconfig', self.interface, 'channel', str(channel)],
+                            capture_output=True)
+
+            # Your existing packet handler code here...
+            sniff(iface=self.interface, prn=packet_handler, timeout=scan_time/len(channels))
+
+        return self.networks_list
